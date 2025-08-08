@@ -1,0 +1,10 @@
+name: Call Generate SBOM workflow
+
+on:
+  push
+  
+jobs:
+  call-workflow:
+    # NOTE: from another repository you need to call the workflow as:
+    # luckydb-0/ospo-workflows/.github/workflows/generate-sbom.yml@0.1
+    uses: ./.github/workflows/generate-sbom.yml

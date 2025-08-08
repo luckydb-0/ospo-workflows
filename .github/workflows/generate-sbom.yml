@@ -1,0 +1,76 @@
+name: Generate SBOM
+
+on:
+  workflow_call:
+    inputs:
+      generate-stage:
+        description: "Stage name, not used in GitHub Actions but kept for compatibility"
+        default: "test"
+        required: false
+        type: string
+      job-prefix:
+        description: "Prefix for the job name"
+        default: "ospo"
+        required: false
+        type: string
+      scanner-image:
+        description: "Image used for scanning the repository."
+        default: "ghcr.io/cyclonedx/cdxgen:v11.2.0"
+        required: false
+        type: string
+      artifact:
+        description: "Artifact file to be scanned."
+        default: ""
+        required: false
+        type: string
+      output:
+        description: "Output file name."
+        default: "bom.cdx.json"
+        required: false
+        type: string
+      options:
+        description: "Options passed to cdxgen."
+        default: ""
+        required: false
+        type: string
+      server-url:
+        description: "DependencyTrack instance URL."
+        default: ""
+        required: false
+        type: string
+      project-path:
+        description: "Path to project."
+        default: "."
+        required: false
+        type: string
+      cyclonedx-version:
+        description: "CycloneDX spec version."
+        default: "1.4"
+        required: false
+        type: string
+
+jobs:
+  generate:
+    name: ${{ inputs.job-prefix }} generate
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.scanner-image }}
+      options: --entrypoint ""
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate SBOM
+        working-directory: ${{ inputs.project-path }}
+        run: |
+          node /opt/cdxgen/bin/cdxgen.js \
+            -o "${{ inputs.output }}" \
+            --author "${{ github.actor }}" \
+            ${{ inputs.options }} \
+            --spec-version "${{ inputs.cyclonedx-version }}"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: ${{ inputs.project-path }}/${{ inputs.output }}

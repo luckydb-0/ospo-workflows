@@ -1,0 +1,16 @@
+name: Call Generate and Update SBOM workflow
+
+on:
+  push
+
+jobs:
+  call-sbom-generator:
+    # NOTE: from another repository you need to call the workflow as:
+    # luckydb-0/ospo-workflows/.github/workflows/generate-and-enrich.yml@0.1
+    uses: ./.github/workflows/generate-and-update-sbom.yml
+    with:
+      options: "--reproducible"
+      contact: "name.surname@example.com"
+      unit: "..."
+      app-name: "MY APP"
+      service-element: "SERVICE NAME"
