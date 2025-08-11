@@ -1,0 +1,95 @@
+name: Generate Compliance SBOM (Scancode)
+
+on:
+  workflow_call:
+    inputs:
+      job-prefix:
+        description: "Prefix for the job name"
+        default: "ospo"
+        required: false
+        type: string
+      scanner-image:
+        description: "Image used for scanning the repository."
+        default: "registry.cern.ch/code-scanners/scancode:32.3.3"
+        required: false
+        type: string
+      artifact:
+        description: "Artifact file to be scanned (not used here, kept for compat)."
+        default: ""
+        required: false
+        type: string
+      output-format:
+        description: "One of: --spdx-tv or --spdx-rdf"
+        default: "--spdx-tv"
+        required: false
+        type: string
+      output-name:
+        description: "Output file name, without extension."
+        default: "bom"
+        required: false
+        type: string
+      exclude:
+        description: "Paths to be excluded (passed to --ignore)."
+        default: "tests/*"
+        required: false
+        type: string
+      options:
+        description: "Extra options to pass to scancode."
+        default: ""
+        required: false
+        type: string
+      project-path:
+        description: "Path to project to scan."
+        default: "."
+        required: false
+        type: string
+      num-processes:
+        description: "Number of parallel processes."
+        default: "4"
+        required: false
+        type: string
+
+jobs:
+  generate-compliance:
+    name: ${{ inputs.job-prefix }} generate compliance
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.scanner-image }}
+      options: --entrypoint ""
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute output filename
+        id: name
+        shell: bash
+        run: |
+          case "${{ inputs['output-format'] }}" in
+            --spdx-tv)
+              echo "OUTPUT_NAME=${{ inputs['output-name'] }}.spdx.tv" >> "$GITHUB_ENV"
+              ;;
+            --spdx-rdf)
+              echo "OUTPUT_NAME=${{ inputs['output-name'] }}.spdx.rdf.xml" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "Unsupported output format: ${{ inputs['output-format'] }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Run Scancode
+        working-directory: ${{ inputs.project-path }}
+        shell: bash
+        run: |
+          scancode -clipeu \
+            -n "${{ inputs['num-processes'] }}" \
+            "${{ inputs['output-format'] }}" "$OUTPUT_NAME" \
+            --ignore "${{ inputs['exclude'] }}" \
+            ${{ inputs.options }} \
+            .
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scancode-sbom
+          path: ${{ inputs.project-path }}/${{ inputs.output-name }}*

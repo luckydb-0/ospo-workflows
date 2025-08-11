@@ -1,0 +1,15 @@
+name: Call Generate and Update SBOM workflow
+
+on:
+  push
+
+jobs:
+  call-sbom-generator:
+    # NOTE: from another repository you need to call the workflow as:
+    # luckydb-0/ospo-workflows/.github/workflows/sbom-compliance.yml@0.2
+    uses: ./.github/workflows/sbom-compliance.yml
+    with:
+      job-prefix: "ospo"
+      output-format: "--spdx-tv"
+      output-name: "bom"              # will produce bom.spdx.tv
+      project-path: "."

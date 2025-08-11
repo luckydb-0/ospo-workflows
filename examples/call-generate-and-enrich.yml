@@ -6,7 +6,7 @@ on:
 jobs:
   call-sbom-generator:
     # NOTE: from another repository you need to call the workflow as:
-    # luckydb-0/ospo-workflows/.github/workflows/generate-and-enrich.yml@0.1
+    # luckydb-0/ospo-workflows/.github/workflows/generate-and-enrich.yml@0.2
     uses: ./.github/workflows/generate-and-update-sbom.yml
     with:
       options: "--reproducible"
