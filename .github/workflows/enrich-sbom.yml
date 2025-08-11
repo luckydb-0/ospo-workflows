@@ -1,0 +1,97 @@
+name: Enrich SBOM
+
+on:
+  workflow_call:
+    inputs:
+      update-stage:
+        description: "Stage name (kept for compatibility; not used by GHA)"
+        default: "deploy"
+        required: false
+        type: string
+      job-prefix:
+        description: "Prefix for the job name"
+        default: "ospo"
+        required: false
+        type: string
+      image:
+        description: "Image containing the script for updating the SBOM."
+        default: "registry.cern.ch/code-scanners/sbom-helper:latest"
+        required: false
+        type: string
+      artifact:
+        description: "Input SBOM to be updated (path/filename)."
+        default: "bom.cdx.json"
+        required: false
+        type: string
+      annotator:
+        description: "Name of the person running the component."
+        default: "${{ github.actor }}"
+        required: false
+        type: string
+      url:
+        description: "URL of the project."
+        default: "${{ github.server_url }}/${{ github.repository }}"
+        required: false
+        type: string
+      unit:
+        description: "CERN organic unit of the person running the component."
+        default: ""
+        required: false
+        type: string
+      contact:
+        description: "Email of the responsible for the service."
+        default: ""
+        required: false
+        type: string
+      app-name:
+        description: "Name of the service project."
+        default: "${{ github.event.repository.name }}"
+        required: false
+        type: string
+      service-element:
+        description: "Name of the service element as appears in ServiceNow."
+        default: ""
+        required: false
+        type: string
+      download-artifact-name:
+        description: "If set, the workflow will download this artifact before updating."
+        default: ""
+        required: false
+        type: string
+      download-path:
+        description: "Where to place the downloaded artifact."
+        default: "."
+        required: false
+        type: string
+
+jobs:
+  update:
+    name: ${{ inputs.job-prefix }} update
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.image }}
+      options: --entrypoint ""
+    steps:
+      - name: (Optional) Download SBOM artifact to process
+        if: ${{ inputs['download-artifact-name'] != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs['download-artifact-name'] }}
+          path: ${{ inputs['download-path'] }}
+
+      - name: Run SBOM helper update
+        env:
+          ANNOTATOR: ${{ inputs.annotator }}
+          URL: ${{ inputs.url }}
+          UNIT: ${{ inputs.unit }}
+          CONTACT: ${{ inputs.contact }}
+          APP_NAME: ${{ inputs['app-name'] }}
+          SERVICE_ELEMENT: ${{ inputs['service-element'] }}
+        run: |
+          python /app/src/sbom-helper/main.py --env -i "${{ inputs.artifact }}"
+
+      - name: Upload updated SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms-output
+          path: sboms-output/${{ inputs.artifact }}
