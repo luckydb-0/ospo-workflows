@@ -1,0 +1,31 @@
+name: Generate then Update SBOM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate:
+    # NOTE: from another repository you need to call the workflow as:
+    # luckydb-0/ospo-workflows/.github/workflows/sbom-compliance.yml@0.2
+    uses: ./.github/workflows/scancode-generate-compliance.yml
+    with:
+      job-prefix: "ospo"
+      output-format: "--spdx-tv"
+      output-name: "bom"              # will produce bom.spdx.tv
+      project-path: "."
+    # That reusable uploads an artifact named "scancode-sbom"
+    
+  # luckydb-0/ospo-workflows/.github/workflows/enrich-sbom.yml@0.2
+  update:
+    needs: generate
+    uses: ./.github/workflows/enrich-sbom.yml
+    with:
+      job-prefix: "ospo"
+      # Tell the reusable *which* artifact to download and where:
+      download-artifact-name: "scancode-sbom"
+      download-path: "."
+      # Tell it which file inside that artifact to update:
+      artifact: "bom.spdx.tv"
+      annotator: "${{ github.actor }}"
+      app-name: "${{ github.event.repository.name }}"
